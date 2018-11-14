@@ -16,7 +16,7 @@ typedef struct Pair {
  ****/
 typedef struct BasicHashTable {
   int capacity;
-  Pair **storage;
+  struct Pair **storage;
 } BasicHashTable;
 
 /****
@@ -25,8 +25,8 @@ typedef struct BasicHashTable {
 Pair *create_pair(char *key, char *value)
 {
   Pair *pair = malloc(sizeof(Pair));
-  pair->key = key;
-  pair->value = value;
+  pair->key = strdup(key);
+  pair->value = strdup(value);
 
   return pair;
 }
@@ -36,7 +36,11 @@ Pair *create_pair(char *key, char *value)
  ****/
 void destroy_pair(Pair *pair)
 {
-  if (pair != NULL) free(pair);
+  if (pair != NULL) {
+    free(pair->key);
+    free(pair->value);
+    free(pair);
+  }
 }
 
 /****
@@ -66,7 +70,9 @@ unsigned int hash(char *str, int max)
  ****/
 BasicHashTable *create_hash_table(int capacity)
 {
-  BasicHashTable *ht;
+  BasicHashTable *ht = malloc(sizeof(BasicHashTable));
+  ht->capacity = capacity;
+  ht->storage = calloc(capacity, sizeof(Pair *));
 
   return ht;
 }
@@ -80,7 +86,16 @@ BasicHashTable *create_hash_table(int capacity)
  ****/
 void hash_table_insert(BasicHashTable *ht, char *key, char *value)
 {
-
+  for (int i = 0; i < ht->capacity; i++) {
+    if (ht->storage[i] != NULL && strcmp(ht->storage[i]->key, key) == 0) {
+      free(ht->storage[i]->key);
+      free(ht->storage[i]->value);
+      printf("Keys must be unique");
+    }
+  }
+  Pair *item = create_pair(key, value);
+  int index = hash(item->key, ht->capacity);
+  ht->storage[index] = item;
 }
 
 /****
@@ -90,7 +105,11 @@ void hash_table_insert(BasicHashTable *ht, char *key, char *value)
  ****/
 void hash_table_remove(BasicHashTable *ht, char *key)
 {
-
+  for (int i = 0; i < ht->capacity; i++) {
+    if (ht->storage[i] != NULL && strcmp(ht->storage[i]->key, key) == 0) {
+      destroy_pair(ht->storage[i]);
+    }
+  }
 }
 
 /****
@@ -100,6 +119,10 @@ void hash_table_remove(BasicHashTable *ht, char *key)
  ****/
 char *hash_table_retrieve(BasicHashTable *ht, char *key)
 {
+  int index = hash(key, ht->capacity);
+  if (strcmp(ht->storage[index]->key, key) == 0) {
+    return ht->storage[index]->value;
+  }
   return NULL;
 }
 
@@ -110,7 +133,10 @@ char *hash_table_retrieve(BasicHashTable *ht, char *key)
  ****/
 void destroy_hash_table(BasicHashTable *ht)
 {
-
+      if (ht->storage != NULL) {
+        free(ht->storage);
+      }
+  free(ht);
 }
 
 
