@@ -38,7 +38,9 @@ void destroy_pair(Pair *pair)
 {
   if (pair != NULL) {
     free(pair->key);
+    pair->key = NULL;
     free(pair->value);
+    pair->value = NULL;
     free(pair);
   }
 }
@@ -86,16 +88,29 @@ BasicHashTable *create_hash_table(int capacity)
  ****/
 void hash_table_insert(BasicHashTable *ht, char *key, char *value)
 {
-  for (int i = 0; i < ht->capacity; i++) {
-    if (ht->storage != NULL && ht->storage[i] != NULL && strcmp(ht->storage[i]->key, key) == 0) {
-      printf("Keys must be unique");
+  unsigned int index = hash(key, ht->capacity);
+
+  Pair *stored_pair = ht->storage[index];
+
+  if (stored_pair != NULL) {
+    if (strcmp(key, stored_pair->key) != 0) {
+      printf("WARNING: Hash Table Collision!!\n");
     }
+    destroy_pair(stored_pair);
+    ht->storage[index] = NULL;
   }
-  printf("Hash table insert, key is %s, value is %s\n", key, value);
-  Pair *item = create_pair(key, value);
-  int index = hash(key, ht->capacity);
-  printf("Index is %i\n", index);
-  ht->storage[index] = item;
+  ht->storage[index] = create_pair(key, value);
+
+  // for (int i = 0; i < ht->capacity; i++) {
+  //   if (ht->storage != NULL && ht->storage[i] != NULL && strcmp(ht->storage[i]->key, key) == 0) {
+  //     printf("Keys must be unique");
+  //   }
+  // }
+  // printf("Hash table insert, key is %s, value is %s\n", key, value);
+  // Pair *item = create_pair(key, value);
+  // int index = hash(key, ht->capacity);
+  // printf("Index is %i\n", index);
+  // ht->storage[index] = item;
 }
 
 /****
@@ -105,13 +120,28 @@ void hash_table_insert(BasicHashTable *ht, char *key, char *value)
  ****/
 void hash_table_remove(BasicHashTable *ht, char *key)
 {
-  int index = hash(key, ht->capacity);
-  printf("index is %i\n", index);
-    if (ht->storage != NULL && ht->storage[index] != NULL && strcmp(ht->storage[index]->key, key) == 0) {
-      printf("Hash table remove, key at index is %s\n", ht->storage[index]->key);
-      destroy_pair(ht->storage[index]);
+  unsigned int index = hash(key, ht->capacity);
+  Pair *stored_pair = ht->storage[index];
+
+  if (stored_pair != NULL) {
+    if (strcmp(key, stored_pair->key) != 0) {
+      printf("Key not found!!\n");
+    } else if (strcmp(key, stored_pair->key) == 0) {
+      destroy_pair(stored_pair);
+      ht->storage[index] = NULL;
+    }
+  } else {
+    printf("Key not found!\n");
+  // ht->storage[index] = create_pair(key, value);
+  // int index = hash(key, ht->capacity);
+  // printf("index is %i\n", index);
+  //   if (ht->storage != NULL && ht->storage[index] != NULL && strcmp(ht->storage[index]->key, key) == 0) {
+  //     printf("Hash table remove, key at index is %s\n", ht->storage[index]->key);
+  //     destroy_pair(ht->storage[index]);
+  //     ht->storage[index] = NULL;
+  // }
+  // printf("Hash_table_remove, key is %s", key);
   }
-  printf("Hash_table_remove, key is %s", key);
 }
 
 /****
@@ -121,13 +151,25 @@ void hash_table_remove(BasicHashTable *ht, char *key)
  ****/
 char *hash_table_retrieve(BasicHashTable *ht, char *key)
 {
-  int index = hash(key, ht->capacity);
-  printf("Index is %i\n", index);
-  if (ht->storage && ht->storage[index] && strcmp(ht->storage[index]->key, key) == 0) {
-    printf("Hash table retrieve, value is %s\n", ht->storage[index]->value);
-    return ht->storage[index]->value;
-  } 
+  unsigned int index = hash(key, ht->capacity);
+  Pair *stored_pair = ht->storage[index];
+
+  if (stored_pair != NULL) {
+    if (strcmp(key, stored_pair->key) != 0) {
+      printf("Key not found!!\n");
+    } else if (strcmp(key, stored_pair->key) == 0) {
+      return stored_pair->value;
+    }
+  } else {
     return NULL;
+  }
+  // int index = hash(key, ht->capacity);
+  // printf("Index is %i\n", index);
+  // if (ht->storage && ht->storage[index] && strcmp(ht->storage[index]->key, key) == 0) {
+  //   printf("Hash table retrieve, value is %s\n", ht->storage[index]->value);
+  //   return ht->storage[index]->value;
+  // } 
+  //   return NULL;
 }
 
 /****
@@ -137,8 +179,12 @@ char *hash_table_retrieve(BasicHashTable *ht, char *key)
  ****/
 void destroy_hash_table(BasicHashTable *ht)
 {
+  for (int i = 0; i < ht->capacity; i++) {
+    destroy_pair(ht->storage[i]);
+  }
       if (ht->storage) {
         free(ht->storage);
+        ht->storage = NULL;
       }
   free(ht);
   printf("Destroy hash table\n");
