@@ -38,20 +38,19 @@ LinkedPair *create_pair(char *key, char *value)
  ****/
 void destroy_pair(LinkedPair *pair)
 {
-  if (pair) {    
+  if (pair != NULL) {
     free(pair->key);
     pair->key = NULL;
     free(pair->value);
     pair->value = NULL;
-    if (pair->next) {
-      while (pair->next) {
-        LinkedPair *next_node = pair->next;
+    free(pair);
+    if (pair->next != NULL) {
+      while(pair->next != NULL) {
+        pair = pair->next;
         destroy_pair(pair);
-        pair = next_node;
       }
     }
   }
-  free(pair);
 }
 
 /****
@@ -95,36 +94,31 @@ HashTable *create_hash_table(int capacity)
   the value in th existing LinkedPair list.
  ****/
 void hash_table_insert(HashTable *ht, char *key, char *value)
-{
-  unsigned int index = hash(key, ht->capacity);
-  if (ht && ht->storage && ht->storage[index] && ht->storage[index]->key) {
-    if (strcmp(ht->storage[index]->key, key) != 0 && ht->storage[index]->next) {
-      LinkedPair *search = ht->storage[index];
-        while (search->next) {
-          if (strcmp(search->key, key) == 0) {
-              LinkedPair *new_pair = create_pair(key, value);
-              destroy_pair(search);
-              search = new_pair;
-            } else {
-              search = search->next;
-          }
-        }
-        search->next = create_pair(key, value);
-    } else if (strcmp(ht->storage[index]->key, key) != 0 && ht->storage[index]->next == NULL) {
-      LinkedPair *new_pair = create_pair(key, value);
-      ht->storage[index]->next = new_pair;
-    }
-      if (strcmp(ht->storage[index]->key, key) == 0) {
-        LinkedPair *new_pair = create_pair(key, value);
-        destroy_pair(ht->storage[index]);
-        ht->storage[index] = new_pair;
-      } 
-     
-  }
-  LinkedPair *new_pair = create_pair(key, value); 
-  ht->storage[index] = new_pair;
-}
+{   
+  unsigned long int index = hash(key, ht->capacity);
+  LinkedPair *stored_pair = ht->storage[index];
+  LinkedPair *new_pair = create_pair(key, value);
 
+  if (stored_pair) {
+    while (strcmp(stored_pair->key, key) != 0 && stored_pair->next) {
+      stored_pair = stored_pair->next;
+    }
+    if (strcmp(stored_pair->key, key) == 0) {
+      if (stored_pair->next) {
+        new_pair->next = stored_pair->next;
+      }
+      destroy_pair(stored_pair);
+      stored_pair->key = new_pair->key;
+      stored_pair->value = new_pair->value;
+      printf("Inserting {key: %s, value: %s}\n", new_pair->key, new_pair->value);
+    } else if (stored_pair->next == NULL) {
+      stored_pair->next = new_pair;
+      printf("Inserting into next: {key: %s, value: %s}\n", stored_pair->next->key, stored_pair->next->value);
+    }
+  }
+    ht->storage[index] = new_pair;
+    printf("Inserting in else: {key: %s, value: %s}\n", new_pair->key, new_pair->value);
+}
 /****
   Fill this in.
 
@@ -135,25 +129,17 @@ void hash_table_insert(HashTable *ht, char *key, char *value)
  ****/
 void hash_table_remove(HashTable *ht, char *key)
 {
-  unsigned int index = hash(key, ht->capacity);
+  unsigned long int index = hash(key, ht->capacity);
   LinkedPair *stored_pair = ht->storage[index];
 
-  if (ht && ht->storage && stored_pair && stored_pair->key) {
-    if (strcmp(key, stored_pair->key) != 0 && stored_pair->next) {
-      while (stored_pair->next) {
-        stored_pair = stored_pair->next;
-        if (strcmp(stored_pair->key, key) == 0) {
-          destroy_pair(stored_pair);
-          stored_pair = NULL;
-        }
-      } 
+  if (stored_pair) {
+    while (strcmp(stored_pair->key, key) != 0 && stored_pair->next) {
+      stored_pair = stored_pair->next;
     }
-    else if (strcmp(key, stored_pair->key) == 0) {
+    if (strcmp(stored_pair->key, key) == 0) {
       destroy_pair(stored_pair);
-      ht->storage[index] = NULL;
+      stored_pair = NULL;
     }
-  } else {
-    printf("Key not found!\n");
   }
 }
 
@@ -168,24 +154,27 @@ void hash_table_remove(HashTable *ht, char *key)
 char *hash_table_retrieve(HashTable *ht, char *key)
 {
   unsigned int index = hash(key, ht->capacity);
-  LinkedPair *stored_pair = ht->storage[index];
-  if (ht && ht->storage && ht->storage[index] &&  ht->storage[index]->key) {
-    if (strcmp(ht->storage[index]->key, key) != 0 && ht->storage[index]->next) {
-        LinkedPair *search = ht->storage[index];
-        while (search->next) {
-          search = search->next;
-          if (strcmp(key, search->key) == 0) {
-            return search->value;
+  if (ht->storage && ht->storage[index]) {
+    if (strcmp(ht->storage[index]->key, key) == 0) {
+      printf("Retrieved value: %s\n", ht->storage[index]->value);
+      return ht->storage[index]->value;
+    } else {
+      
+      if (ht->storage[index]->next) {
+        LinkedPair *stored_pair = ht->storage[index];
+        while (stored_pair->next && strcmp(stored_pair->key, key) != 0) {
+          stored_pair = stored_pair->next;
+          if (strcmp(stored_pair->key, key) == 0) {
+            printf("Retrieved value in while loop: %s\n", stored_pair->value);
+            return stored_pair->value;
           }
         }
       }
-  
-    if (strcmp(key, stored_pair->key) == 0) {
-          return stored_pair->value;
-      }
+    }
   }
   return NULL;
 }
+
 // /****
 //   Fill this in.
 
@@ -193,15 +182,14 @@ char *hash_table_retrieve(HashTable *ht, char *key)
 //  ****/
 void destroy_hash_table(HashTable *ht)
 {
-  for (int i = 0; i < ht->capacity; i++) {
-      destroy_pair(ht->storage[i]);
-      ht->storage[i] = NULL;
+    for (int i = 0; i < ht->capacity; i++) {
+      if (ht && ht->storage && ht->storage[i]) {
+        destroy_pair(ht->storage[i]);
+      }
     }
-  if (ht->storage) {
-    free(ht->storage);
-    ht->storage = NULL;
-  }
-    free(ht);
+  free(ht->storage);
+  free(ht);
+  printf("Destroy hash table\n");
 }
 
 /****
@@ -213,21 +201,15 @@ void destroy_hash_table(HashTable *ht)
   Don't forget to free any malloc'ed memory!
  ****/
 HashTable *hash_table_resize(HashTable *ht) {
-  HashTable *new_ht = create_hash_table(ht->capacity * 2);
-
-  for (int i = 0; i < ht->capacity; i++) { 
-    while (ht && ht->storage && ht->storage[i]) {
+  int oldCapacity = ht->capacity;
+  int newCapacity = ht->capacity * 2;
+  HashTable *new_ht = create_hash_table(newCapacity);
+  for (int i = 0; i < oldCapacity; i++) {
+    if (ht->storage && ht->storage[i]) {
       hash_table_insert(new_ht, ht->storage[i]->key, ht->storage[i]->value);
-      if (ht->storage[i]->next) {
-        while (ht->storage[i]->next) {
-          hash_table_insert(new_ht, ht->storage[i]->next->key, ht->storage[i]->next->value);
-        }
-      }
     }
   }
-  free(ht->storage);
-  ht->storage = NULL;
-  free(ht);
+  destroy_hash_table(ht);
   return new_ht;
 }
 
