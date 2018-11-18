@@ -224,7 +224,7 @@ void hash_table_remove(HashTable *ht, char *key) {
           LinkedPair *child = current->next;
           destroy_pair(child);
           current->next = NULL;
-          printf("Remove child, turn current->next to null");
+          printf("Remove child, turn current->next to null\n");
         }
       }
     }
@@ -278,19 +278,16 @@ char *hash_table_retrieve(HashTable *ht, char *key) {
 //  ****/
 void destroy_hash_table(HashTable *ht) {
   for (int i = 0; i < ht->capacity; i++) {
-    if (ht->storage[i] != NULL && ht->storage[i]->next == NULL) {
-      destroy_pair(ht->storage[i]);
-    } else if (ht->storage[i]->next != NULL && ht->storage[i]->next != NULL) {
+    if (ht->storage[i] != NULL && ht->storage[i]->next != NULL) {
       LinkedPair *current = ht->storage[i];
-      LinkedPair *next = ht->storage[i]->next;
-      while (next != NULL) {
-        current = next;
-        next = current->next;
-      };
+      LinkedPair *child = ht->storage[i]->next;
+      while (current->next != NULL) {
+        destroy_pair(current);
+        current = child;
+        child = child->next;
+      }
     }
-    destroy_pair(ht->storage[i]);
   }
-  free(ht->storage);
   free(ht);
 }
 
@@ -323,7 +320,6 @@ HashTable *hash_table_resize(HashTable *ht) {
     destroy_pair(ht->storage[i]);
   }
   free(ht->storage);
-  destroy_hash_table(ht);
   return new;
 }
 
