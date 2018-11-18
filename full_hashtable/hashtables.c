@@ -137,34 +137,51 @@ void hash_table_insert(HashTable *ht, char *key, char *value) {
              index);
     }
   } else if (strcmp(ht->storage[index]->key, key) != 0) {
-    if (ht->storage[index]->next != NULL) {
-      LinkedPair *current = ht->storage[index];
-      LinkedPair *child = ht->storage[index]->next;
-      while (child != NULL) {
-        if (strcmp(current->key, key) == 0) {
-          destroy_pair(current);
-          current = new_pair;
-          current->next = child;
-          printf("Insert after delete in next with next: {Key: %s, value: %s, "
-                 "index: %u}  Next: {Key: %s, value: %s, index: %u}\n",
-                 current->key, current->value, index, current->next->key,
-                 current->next->value, index);
-          return;
-        } else {
-          current = child;
-          child = current->next;
-        }
-      }
-      current->next = new_pair;
-      printf("Insert in next after while: {Key: %s, value: %s, index: %u}\n",
-             current->next->key, current->next->value, index);
-      return;
-    }
     if (ht->storage[index]->next == NULL) {
       ht->storage[index]->next = new_pair;
       printf("Insert at next: {Key: %s, value: %s, index: %u}\n",
              ht->storage[index]->next->key, ht->storage[index]->next->value,
              index);
+    } else if (ht->storage[index]->next != NULL) {
+      LinkedPair *current = ht->storage[index];
+      while (current->next != NULL) {
+        if (strcmp(current->next->key, key) == 0 &&
+            current->next->next != NULL) {
+          LinkedPair *child = current->next;
+          LinkedPair *grandchild = child->next;
+          destroy_pair(child);
+          child = new_pair;
+          current->next = child;
+          child->next = grandchild;
+          printf("Insert after delete, connecting A "
+                 "to B to C: {Key: %s, value: %s, "
+                 "index: %u}\n",
+                 child->key, child->value, index);
+          return;
+        } else if (strcmp(current->next->key, key) == 0 &&
+                   current->next->next == NULL) {
+          LinkedPair *child = current->next;
+          destroy_pair(child);
+          child = new_pair;
+          current->next = child;
+          printf("Insert after delete, connecting A to B: {Key: %s, value: %s, "
+                 "index: %u}\n",
+                 child->key, child->value, index);
+          return;
+        }
+        current = current->next;
+      }
+      if (strcmp(current->key, key) == 0) {
+        destroy_pair(current);
+        current = new_pair;
+        printf(
+            "Last link deleted and inserted: {Key: %s, value: %s, index: %u}\n",
+            current->key, current->value, index);
+        return;
+      } else if (strcmp(current->key, key) != 0) {
+        current->next = new_pair;
+        return;
+      }
     }
   }
 }
@@ -187,6 +204,28 @@ void hash_table_remove(HashTable *ht, char *key) {
       } else if (ht->storage[index]->next == NULL) {
         destroy_pair(ht->storage[index]);
         ht->storage[index] = NULL;
+      }
+    } else if (strcmp(ht->storage[index]->key, key) != 0) {
+      LinkedPair *current = ht->storage[index];
+      while (current->next != NULL) {
+        if (strcmp(current->next->key, key) == 0 &&
+            current->next->next != NULL) {
+          LinkedPair *child = current->next;
+          LinkedPair *grandchild = child->next;
+          destroy_pair(child);
+          child = grandchild;
+          current->next = child;
+          printf("Remove child, connect current->next to child->next: {Key: "
+                 "%s, value: %s, "
+                 "index: %u}\n",
+                 child->key, child->value, index);
+        } else if (strcmp(current->next->key, key) == 0 &&
+                   current->next->next == NULL) {
+          LinkedPair *child = current->next;
+          destroy_pair(child);
+          current->next = NULL;
+          printf("Remove child, turn current->next to null");
+        }
       }
     }
   }
@@ -217,18 +256,14 @@ char *hash_table_retrieve(HashTable *ht, char *key) {
              "%u}\n",
              ht->storage[index]->key, ht->storage[index]->value, index);
       return ht->storage[index]->value;
-    } else if (strcmp(ht->storage[index]->key, key) != 0) {
+    } else {
       LinkedPair *current = ht->storage[index];
       while (current->next != NULL) {
-        current = current->next;
-        if (strcmp(current->key, key) == 0) {
+        if (strcmp(current->next->key, key) == 0) {
           printf("Retrieve if matches in linked list: {Key: %s, value: %s, "
                  "index: %u}\n",
-                 current->key, current->value, index);
-          return current->value;
-        }
-        if (current->next == NULL) {
-          return NULL;
+                 current->next->key, current->next->value, index);
+          return current->next->value;
         }
       }
     }
