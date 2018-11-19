@@ -198,8 +198,13 @@ void hash_table_remove(HashTable *ht, char *key) {
       destroy_pair(ht->storage[index]);
       if (ht->storage[index]->next != NULL) {
         ht->storage[index] = next;
+        printf("Remove item from index, replace with next: {Key: %s, value: "
+               "%s, index: "
+               "%u}\n",
+               ht->storage[index]->key, ht->storage[index]->value, index);
       } else {
         ht->storage[index] = NULL;
+        printf("Remove item from index, set to null.\n");
       }
     } else if (strcmp(ht->storage[index]->key, key) != 0) {
       LinkedPair *current = ht->storage[index];
@@ -275,20 +280,33 @@ char *hash_table_retrieve(HashTable *ht, char *key) {
 //   Don't forget to free any malloc'ed memory!
 //  ****/
 void destroy_hash_table(HashTable *ht) {
+  printf("Starting to destroy hash table\n");
   for (int i = 0; i < ht->capacity; i++) {
     if (ht->storage[i] != NULL && ht->storage[i]->next != NULL) {
       LinkedPair *current = ht->storage[i];
       LinkedPair *child = ht->storage[i]->next;
       while (current->next != NULL) {
+        printf("Destroying %u index: {Key: %s, value: %s}\n", i, current->key,
+               current->value);
         destroy_pair(current);
         current = child;
         child = child->next;
+        printf("Destroyed current at %u index.  New current: {Key: %s, value: "
+               "%s}\n",
+               i, current->key, current->value);
       }
+      printf("Destroying index %u: {Key: %s, value: %s}\n", i, current->key,
+             current->value);
       destroy_pair(current);
       current = NULL;
+    } else if (ht->storage[i] != NULL) {
+      printf("Destroying %u index: {Key: %s, value: %s}\n", i,
+             ht->storage[i]->key, ht->storage[i]->value);
+      destroy_pair(ht->storage[i]);
     }
   }
   free(ht);
+  printf("Hash table destroyed.\n");
 }
 
 /****
@@ -339,7 +357,13 @@ int main(void) {
   ht = hash_table_resize(ht);
   int new_capacity = ht->capacity;
 
+  int capacity_two = ht->capacity;
+  ht = hash_table_resize(ht);
+  int capacity_three = ht->capacity;
+
   printf("\nResizing hash table from %d to %d.\n", old_capacity, new_capacity);
+  printf("\nResizing hash table from %d to %d.\n", capacity_two,
+         capacity_three);
 
   destroy_hash_table(ht);
 
